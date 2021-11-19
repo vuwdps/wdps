@@ -1,4 +1,8 @@
 import gzip
+import requests
+import json
+from elasticsearch import Elasticsearch
+from bs4 import BeautifulSoup
 
 KEYNAME = "WARC-TREC-ID"
 
@@ -7,6 +11,8 @@ def find_labels(payload):
     if payload == '':
         return
 
+    #soup parser
+    
     # The variable payload contains the source code of a webpage and some additional meta-data.
     # We firt retrieve the ID of the webpage, which is indicated in a line that starts with KEYNAME.
     # The ID is contained in the variable 'key'
@@ -16,9 +22,10 @@ def find_labels(payload):
             key = line.split(': ')[1]
             break
 
+    
     # Problem 1: The webpage is typically encoded in HTML format.
     # We should get rid of the HTML tags and retrieve the text. How can we do it?
-
+    extractedText = BeautifulSoup(payload, 'html.parser')
     # Problem 2: Let's assume that we found a way to retrieve the text from a webpage. How can we recognize the
     # entities in the text?
 
@@ -43,11 +50,26 @@ def find_labels(payload):
     # For now, we are cheating. We are going to returthe labels that we stored in sample-labels-cheat.txt
     # Instead of doing that, you should process the text to identify the entities. Your implementation should return
     # the discovered disambiguated entities with the same format so that I can check the performance of your program.
+
+    #checking elastic search
+    es_results = search("Cola")
+    print(es_results)
     cheats = dict((line.split('\t', 2) for line in open('data/sample-labels-cheat.txt').read().splitlines()))
     for label, wikidata_id in cheats.items():
         if key and (label in payload):
             yield key, label, wikidata_id
 
+def search(query):
+    e = Elasticsearch(['http://fs0.das5.cs.vu.nl:10010'])
+    p = { "query" : { "query_string" : { "query" : query }}}
+    response = e.search(index="wikidata_en", body=json.dumps(p))
+    id_labels = {}
+    if response:
+        for hit in response['hits']['hits']:
+            label = hit['_source']['schema_name']
+            id = hit['_id']
+            id_labels.setdefault(id, set()).add(label)
+    return id_labels
 
 def split_records(stream):
     payload = ''
@@ -70,4 +92,5 @@ if __name__ == '__main__':
     with gzip.open(INPUT, 'rt', errors='ignore') as fo:
         for record in split_records(fo):
             for key, label, wikidata_id in find_labels(record):
-                print(key + '\t' + label + '\t' + wikidata_id)
+                # print(key + '\t' + label + '\t' + wikidata_id)
+                pass
