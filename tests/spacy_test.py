@@ -1,3 +1,4 @@
+import json
 import os
 from spacy.kb import KnowledgeBase
 import spacy  # version 3.0.6'
@@ -7,24 +8,26 @@ import csv
 
 def load_entities():
     # distributed alongside this notebook
-    entities_loc = Path.cwd().parent / "assignment\data\sample_annotations.tsv"
-
+    entities_loc = Path.cwd().parent / "assignment\data\sample-labels-cheat.txt"
+    i = 0
     names = dict()
     wikilinks = dict()
     with entities_loc.open("r", encoding="utf8") as csvfile:
-        csvreader = csv.reader(csvfile, delimiter="\t")
-        for row in csvreader:
-            qid = row[0]
-            name = row[1]
-            wikilink = row[2]
+        # csvreader = csv.reader(csvfile, delimiter="\t")
+        for row in csvfile:
+            row = row.split('\t')
+            qid = str(i)
+            name = row[0]
+            wikilink = row[1]
             names[qid] = name
             wikilinks[qid] = wikilink
+            i += 1
     return names, wikilinks
 
 
 name_dict, wikilink_dict = load_entities()
-for QID in name_dict.keys():
-    print(f"{QID}, name={name_dict[QID]}, wikilink={wikilink_dict[QID]}")
+# for QID in name_dict.keys():
+#     print(f"{QID}, name={name_dict[QID]}, wikilink={wikilink_dict[QID]}")
 
 
 nlp = spacy.load("en_core_web_md")
@@ -38,11 +41,25 @@ for qid, wikilink in wikilink_dict.items():
 for qid, name in name_dict.items():
     kb.add_alias(alias=name, entities=[qid], probabilities=[1])
 
-print(f"Entities in the KB: {kb.get_entity_strings()}")
-print(f"Aliases in the KB: {kb.get_alias_strings()}")
+# print(f"Entities in the KB: {kb.get_entity_strings()}")
+# print(f"Aliases in the KB: {kb.get_alias_strings()}")
 
 
 # output_dir = Path.cwd().parent / "assignment"
 # if not os.path.exists(output_dir):
 #     os.mkdir(output_dir)
-# kb.dump(output_dir / "knowledgebase")
+# nlp.to_disk(output_dir / "knowledgebase")
+
+dataset = []
+json_loc = Path.cwd().parent / "assignment\data\sample_annotations.tsv"
+with json_loc.open("r", encoding="utf8") as jsonfile:
+    for line in jsonfile:
+        example = json.loads(line)
+        text = example["text"]
+        if example["answer"] == "accept":
+            QID = example["accept"][0]
+            offset = (example["spans"][0]["start"], example["spans"][0]["end"])
+            links_dict = {QID: 1.0}
+        dataset.append((text, {"links": {offset: links_dict}}))
+
+print(dataset[0])
