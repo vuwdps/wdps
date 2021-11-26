@@ -40,8 +40,8 @@ def find_labels(payload):
                       "QUANTITY", "ORDINAL", "CARDINAL")
     for i in doc.ents:
         if i.label_ not in false_entities:
-            print('label', i.label_)
-            print('text', i.text)
+            # print('label', i.label_)
+            # print('text', i.text)
             namedEntity_list[i.text] = i.label_
 
     for keyent in namedEntity_list:
