@@ -34,10 +34,11 @@ def find_labels(payload):
     doc = nlp(extractedText)
         
     false_entities = ("DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", "ORDINAL", "CARDINAL")
+    false_labels = ("WARC-Type","WARC-Date","clueweb12","WARC-IP-Address","WARC-Target-URI","Content-Type","GMT Cache-Control","§","ORG","OpenSSL/0.9.8e")
     for i in doc.ents:
-            if i.label_ not in false_entities:
+            if i.label_ not in false_entities and i.text not in false_labels:
                 namedEntity_list[i.text] = i.label_
-
+    
     for keyent in namedEntity_list:
             es_results=search(keyent)
             result = {}
@@ -57,8 +58,8 @@ def find_labels(payload):
                                 'score':score,
                                 'rank': 0
                             })
-            print(result)            
-            
+                     
+            print(result)
         # response = requests.get(dbapi + "candidates?text="+extractedText)
         # print('candidate text', response.content)
         # es_results = search("Cola")
