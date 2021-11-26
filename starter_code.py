@@ -24,12 +24,18 @@ def find_labels(payload):
             key = line.split(': ')[1]
             break
 
-    
+    print(key)
+    namedEntity_list = {}
     extractedText = BeautifulSoup(payload, 'html.parser')
-    extractedText = extractedText.get_text()
+    extractedText = extractedText.get_text().replace("\n", " ")
     nlp = spacy.load('en_core_web_sm')
     doc = nlp(extractedText)
-    print(doc)
+    
+    false_entities = ("DATE", "TIME", "PERCENT", "MONEY", "QUANTITY", "ORDINAL", "CARDINAL")
+    for i in doc.ents:
+        if i.label_ not in false_entities:
+            namedEntity_list[i.text] = i.label_
+    print(namedEntity_list)
     # response = requests.get(dbapi + "candidates?text="+extractedText)
     # print('candidate text', response.content)
     # es_results = search("Cola")
