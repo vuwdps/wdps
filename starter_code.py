@@ -61,14 +61,12 @@ def find_labels(payload):
         "Apache X-Powered-By","sha1","Accept-Encoding","WARC-Filename","WARC-File-Length","WARC-Data-Type","WARC-Record-ID","WARC File Format","WARC","WARC bands","WARC Format 1.0 specification")
     
     for i in doc.ents:
-            if i.label_ not in false_entities and i.text not in false_labels:
+            if i.label_ not in false_entities or i.text not in false_labels:
                 namedEntity_list[i.text] = i.label_
     
     result = {}
-    print(namedEntity_list)
     for keyent in namedEntity_list:
             es_results=search(keyent)
-            print(es_results)
             if es_results:
                 for hit in es_results['hits']['hits']:
                     if 'schema_name' in hit['_source']:
@@ -91,10 +89,10 @@ def find_labels(payload):
                         if sparqlQuerydata['results']:
                             bindings = sparqlQuerydata['bindings']
                             result[label]['rank'] = math.log(len(bindings)) * result[label]['score']
-
-            if result.items is not None:
+          
+            if result.items() is not None:
                 result = sorted(result.items(), key=lambda i: (i[1]['rank']), reverse=True)
-
+                result = dict(result)
                         # if sparqlQuerydata:
                         #     n = int()
     
@@ -104,15 +102,15 @@ def find_labels(payload):
         # print('candidate text', response.content)
         # es_results = search("Cola")
         # print(es_results)
-    
-    for label, id in result.items():
-                yield key, label, wikidata_id
+    if result is not None:
+        for label, id in result:
+                    yield key, label, id
 
 def search(query):
     e = Elasticsearch(['http://fs0.das5.cs.vu.nl:10010'])
-    p = { "query" : { "query_string" : { "query" : query }}}
+    p =  { "query_string" : { "query" : query }}
     try:
-        response = e.search(index="wikidata_en", body=json.dumps(p))
+        response = e.search(index="wikidata_en", query=json.dumps(p))
         return response
     except ElasticsearchException as e:
         pass
@@ -137,6 +135,6 @@ if __name__ == '__main__':
 
     with gzip.open(INPUT, 'rt', errors='ignore') as fo:
         for record in split_records(fo):
-            for key, label, wikidata_id in find_labels(record):
-                # print(key + '\t' + label + '\t' + wikidata_id)
-                pass
+            for key, label, id in find_labels(record):
+                print(key + '\t' + label + '\t' + id)
+                
