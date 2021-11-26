@@ -3,7 +3,9 @@ import requests
 import json
 from elasticsearch import Elasticsearch
 from bs4 import BeautifulSoup
+import spacy
 
+dbapi = "https://api.dbpedia-spotlight.org/en/"
 KEYNAME = "WARC-TREC-ID"
 
 # The goal of this function process the webpage and returns a list of labels -> entity ID
@@ -23,37 +25,15 @@ def find_labels(payload):
             break
 
     
-    # Problem 1: The webpage is typically encoded in HTML format.
-    # We should get rid of the HTML tags and retrieve the text. How can we do it?
     extractedText = BeautifulSoup(payload, 'html.parser')
-    # Problem 2: Let's assume that we found a way to retrieve the text from a webpage. How can we recognize the
-    # entities in the text?
-
-    # Problem 3: We now have to disambiguate the entities in the text. For instance, let's assugme that we identified
-    # the entity "Michael Jordan". Which entity in Wikidata is the one that is referred to in the text?
-
-    # To tackle this problem, you have access to two tools that can be useful. The first is a SPARQL engine (Trident)
-    # with a local copy of Wikidata. The file "test_sparql.py" shows how you can execute SPARQL queries to retrieve
-    # valuable knowledge. Please be aware that a SPARQL engine is not the best tool in case you want to lookup for
-    # some strings. For this task, you can use elasticsearch, which is also installed in the docker image.
-    # The file start_elasticsearch_server.sh will start the elasticsearch server while the file
-    # test_elasticsearch_server.py shows how you can query the engine.
-
-    # A simple implementation would be to first query elasticsearch to retrieve all the entities with a label
-    # that is similar to the text found in the web page. Then, you can access the SPARQL engine to retrieve valuable
-    # knowledge that can help you to disambiguate the entity. For instance, if you know that the webpage refers to persons
-    # then you can query the knowledge base to filter out all the entities that are not persons...
-
-    # Obviously, more sophisticated implementations that the one suggested above are more than welcome :-)
-
-
-    # For now, we are cheating. We are going to returthe labels that we stored in sample-labels-cheat.txt
-    # Instead of doing that, you should process the text to identify the entities. Your implementation should return
-    # the discovered disambiguated entities with the same format so that I can check the performance of your program.
-
-    #checking elastic search
-    es_results = search("Cola")
-    print(es_results)
+    extractedText = extractedText.get_text()
+    nlp = spacy.load('en_core_web_sm')
+    doc = nlp(extractedText)
+    print(doc)
+    # response = requests.get(dbapi + "candidates?text="+extractedText)
+    # print('candidate text', response.content)
+    # es_results = search("Cola")
+    # print(es_results)
     cheats = dict((line.split('\t', 2) for line in open('data/sample-labels-cheat.txt').read().splitlines()))
     for label, wikidata_id in cheats.items():
         if key and (label in payload):
